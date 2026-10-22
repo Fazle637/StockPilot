@@ -1,0 +1,23 @@
+
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Secrets
+.env
+
+# Local application data
+instance/
+
+# User uploads
+uploads/*
+!uploads/.gitkeep
+
+# Test cache
+.pytest_cache/
+
+# Editor settings
+.vscode/
