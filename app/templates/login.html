@@ -1,0 +1,38 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login | StockPilot</title>
+</head>
+<body>
+    <main>
+        <h1>Log in to StockPilot</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <p role="alert">{{ message }}</p>
+            {% endfor %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('auth.login') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <label for="identifier">Username or email</label>
+            <input id="identifier" name="identifier"
+                   type="text" required autocomplete="username">
+
+            <label for="password">Password</label>
+            <input id="password" name="password"
+                   type="password" required autocomplete="current-password">
+
+            <button type="submit">Log in</button>
+        </form>
+
+        <p>New to StockPilot?
+            <a href="{{ url_for('auth.register') }}">Create an account</a>
+        </p>
+    </main>
+</body>
+</html>

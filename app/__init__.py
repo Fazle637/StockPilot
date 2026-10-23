@@ -1,10 +1,11 @@
 
+
 import os
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 from flask_wtf.csrf import CSRFProtect
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
+from flask_login import  LoginManager, current_user, login_required
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -31,13 +32,26 @@ def create_app(test_config=None):
     login_manager.init_app(app)
     csrf.init_app(app)
 
+    login_manager.login_view = "auth.login"
+    login_manager.session_protection = "basic"
+
+    from app.models import User
+    from app import models  # noqa: F401
+    from app.auth import auth_bp
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        try:
+            return db.session.get(User, int(user_id))
+        except (TypeError, ValueError):
+            return None
+
+    app.register_blueprint(auth_bp)
+
     @app.get("/")
+    @login_required
     def home():
-        return jsonify({
-            "app": "StockPilot",
-            "message": "Inventory management system is running.",
-            "status": "ok",
-        })
+        return render_template("dashboard.html")
 
     @app.get("/health")
     def health():

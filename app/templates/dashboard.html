@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>StockPilot Dashboard</title>
+</head>
+<body>
+    <main>
+        <h1>Welcome to StockPilot!</h1>
+
+        <p>Your inventory management workspace.</p>
+
+        <section>
+            <h2>Account</h2>
+            <p>Username: {{ current_user.username }}</p>
+            <p>Role: {{ current_user.role }}</p>
+        </section>
+
+        <section>
+            <h2>Inventory Management</h2>
+            <p>Your product inventory dashboard is coming next.</p>
+        </section>
+
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit">Log out</button>
+        </form>
+    </main>
+</body>
+</html>
