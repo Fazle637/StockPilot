@@ -1,0 +1,104 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>StockPilot — Inventory</title>
+</head>
+<body>
+    <main>
+        <h1>Product Inventory</h1>
+
+        <p>Signed in as {{ current_user.username }}</p>
+
+        <p>
+            <a href="{{ url_for('home') }}">Back to dashboard</a>
+        </p>
+
+        <p>
+            <a href="{{ url_for('inventory.create_product') }}">
+                Add a product
+            </a>
+        </p>
+
+        <form method="GET" action="{{ url_for('inventory.list_products') }}">
+            <label for="q">Search by product name or SKU</label>
+            <input
+                id="q"
+                name="q"
+                type="search"
+                maxlength="100"
+                value="{{ search }}"
+            >
+            <button type="submit">Search</button>
+            <a href="{{ url_for('inventory.list_products') }}">Clear</a>
+        </form>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <p role="status">{{ message }}</p>
+            {% endfor %}
+        {% endwith %}
+
+        {% if products %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>SKU</th>
+                        <th>Quantity</th>
+                        <th>Unit price</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for product in products %}
+                        <tr>
+                            <td>{{ product.name }}</td>
+                            <td>{{ product.sku }}</td>
+                            <td>{{ product.quantity }}</td>
+                            <td>{{ "%.2f"|format(product.unit_price) }}</td>
+
+                            <td>
+                                <a href="{{ url_for(
+                                    'inventory.edit_product',
+                                    product_id=product.id
+                                ) }}">
+                                    Edit
+                                </a>
+
+                                <form
+                                    method="POST"
+                                    action="{{ url_for(
+                                        'inventory.delete_product',
+                                        product_id=product.id
+                                    ) }}"
+                                    style="display: inline;"
+                                >
+                                    <input
+                                        type="hidden"
+                                        name="csrf_token"
+                                        value="{{ csrf_token() }}"
+                                    >
+
+                                    <button
+                                        type="submit"
+                                        onclick="return confirm('Delete this product?');"
+                                    >
+                                        Delete
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No products found. Add your first product to get started.</p>
+        {% endif %}
+    </main>
+</body>
+</html>
+```

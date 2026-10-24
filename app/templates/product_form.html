@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>
+        StockPilot — {{ 'Edit Product' if product else 'Add Product' }}
+    </title>
+</head>
+<body>
+    <main>
+        <h1>
+            {{ 'Edit Product' if product else 'Add a Product' }}
+        </h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <p role="alert">{{ message }}</p>
+            {% endfor %}
+        {% endwith %}
+
+        <form
+            method="POST"
+            action="{% if product %}{{ url_for('inventory.edit_product', product_id=product.id) }}{% else %}{{ url_for('inventory.create_product') }}{% endif %}"
+        >
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+            >
+
+            <p>
+                <label for="name">Product name</label>
+                <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    maxlength="120"
+                    value="{{ product.name if product else '' }}"
+                    required
+                >
+            </p>
+
+            <p>
+                <label for="sku">SKU</label>
+                <input
+                    id="sku"
+                    name="sku"
+                    type="text"
+                    maxlength="60"
+                    value="{{ product.sku if product else '' }}"
+                    required
+                >
+            </p>
+
+            <p>
+                <label for="description">Description</label>
+                <textarea
+                    id="description"
+                    name="description"
+                    maxlength="5000"
+                >{{ product.description if product else '' }}</textarea>
+            </p>
+
+            <p>
+                <label for="quantity">Quantity</label>
+                <input
+                    id="quantity"
+                    name="quantity"
+                    type="number"
+                    min="0"
+                    max="1000000"
+                    step="1"
+                    value="{{ product.quantity if product else '' }}"
+                    required
+                >
+            </p>
+
+            <p>
+                <label for="unit_price">Unit price</label>
+                <input
+                    id="unit_price"
+                    name="unit_price"
+                    type="number"
+                    min="0"
+                    max="99999999.99"
+                    step="0.01"
+                    value="{{ '%.2f'|format(product.unit_price) if product else '' }}"
+                    required
+                >
+            </p>
+
+            <button type="submit">
+                {{ 'Save Changes' if product else 'Save Product' }}
+            </button>
+        </form>
+
+        <p>
+            <a href="{{ url_for('inventory.list_products') }}">
+                Cancel and return to inventory
+            </a>
+        </p>
+    </main>
+</body>
+</html>

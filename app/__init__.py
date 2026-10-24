@@ -48,6 +48,10 @@ def create_app(test_config=None):
 
     app.register_blueprint(auth_bp)
 
+    from app.routes import inventory_bp
+    
+    app.register_blueprint(inventory_bp)
+
     @app.get("/")
     @login_required
     def home():
