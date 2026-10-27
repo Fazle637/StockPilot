@@ -1,0 +1,72 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>StockPilot — Create Order</title>
+</head>
+<body>
+    <main>
+        <h1>Create Order</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <p role="alert">{{ message }}</p>
+            {% endfor %}
+        {% endwith %}
+
+        {% if products %}
+            <form method="POST" action="{{ url_for('orders.create_order') }}">
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="{{ csrf_token() }}"
+                >
+
+                <p>
+                    <label for="product_id">Product</label>
+                    <select id="product_id" name="product_id" required>
+                        <option value="">Choose a product</option>
+
+                        {% for product in products %}
+                            <option value="{{ product.id }}">
+                                {{ product.name }}
+                                — SKU: {{ product.sku }}
+                                — Available: {{ product.quantity }}
+                                — Price: {{ "%.2f"|format(product.unit_price) }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </p>
+
+                <p>
+                    <label for="quantity">Quantity</label>
+                    <input
+                        id="quantity"
+                        name="quantity"
+                        type="number"
+                        min="1"
+                        max="1000000"
+                        step="1"
+                        required
+                    >
+                </p>
+
+                <button type="submit">Create Order</button>
+            </form>
+        {% else %}
+            <p>You have no products with available stock.</p>
+            <p>
+                <a href="{{ url_for('inventory.create_product') }}">
+                    Add a product
+                </a>
+            </p>
+        {% endif %}
+
+        <p>
+            <a href="{{ url_for('orders.list_orders') }}">Back to Orders</a>
+        </p>
+    </main>
+</body>
+</html>

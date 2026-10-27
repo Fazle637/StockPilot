@@ -1,6 +1,7 @@
 
 from flask import jsonify
 
+from app import db
 from app.models import User
 from app.permissions import roles_required
 
@@ -84,3 +85,52 @@ def test_staff_cannot_access_admin_only_route(client, app):
     response = client.get("/test-admin-only")
 
     assert response.status_code == 403
+
+
+def test_registration_cannot_assign_admin_role(client, app):
+    response = client.post(
+        "/register",
+        data={
+            "username": "attempted_admin",
+            "email": "attempted_admin@example.com",
+            "password": "TestPassword123!",
+            "role": "admin",
+        },
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+
+    with app.app_context():
+        user = User.query.filter_by(
+            username="attempted_admin"
+        ).first()
+
+        assert user is not None
+        assert user.role == "staff"
+
+
+def test_admin_can_access_admin_only_route(client, app):
+    @app.get("/test-admin-access")
+    @roles_required("admin")
+    def test_admin_access():
+        return jsonify({"message": "admin access granted"})
+
+    register_user(client)
+
+    # Promote the test account directly in the test database.
+    with app.app_context():
+        user = User.query.filter_by(
+            username="stockpilot_test"
+        ).first()
+        user.role = "admin"
+        db.session.commit()
+
+    login_user(client)
+
+    response = client.get("/test-admin-access")
+
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "message": "admin access granted"
+    }

@@ -22,6 +22,7 @@
 
         <form
             method="POST"
+            enctype="multipart/form-data"
             action="{% if product %}{{ url_for('inventory.edit_product', product_id=product.id) }}{% else %}{{ url_for('inventory.create_product') }}{% endif %}"
         >
             <input
@@ -90,6 +91,26 @@
                     required
                 >
             </p>
+            
+            <p>
+                <label for="image">Product image</label>
+                <input
+                    id="image"
+                    name="image"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                >
+                <small>
+                    Optional. JPEG, PNG, or WebP. Maximum size: 5 MB.
+                </small>
+            </p>
+
+            {% if product and product.image_filename %}
+                <p>
+                    Current image: {{ product.image_filename }}
+                </p>
+            {% endif %}
+
 
             <button type="submit">
                 {{ 'Save Changes' if product else 'Save Product' }}

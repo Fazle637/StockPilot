@@ -23,10 +23,17 @@ def create_app(test_config=None):
         "DATABASE_URL",
         "sqlite:///stockpilot.db",
     )
+    
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
+    app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
+    app.config["UPLOAD_FOLDER"] = os.path.join(
+        app.root_path,
+        "uploads",
+    )
+    
     if test_config:
         app.config.update(test_config)
+
 
     db.init_app(app)
     login_manager.init_app(app)
@@ -51,6 +58,14 @@ def create_app(test_config=None):
     from app.routes import inventory_bp
     
     app.register_blueprint(inventory_bp)
+
+    from app.order_routes import orders_bp
+    
+    app.register_blueprint(orders_bp)
+
+    from app.stock_note_routes import stock_notes_bp
+    
+    app.register_blueprint(stock_notes_bp)
 
     @app.get("/")
     @login_required

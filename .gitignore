@@ -12,9 +12,12 @@ __pycache__/
 # Local application data
 instance/
 
-# User uploads
+# User uploads (root and Flask upload directory)
 uploads/*
 !uploads/.gitkeep
+
+app/uploads/*
+!app/uploads/.gitkeep
 
 # Test cache
 .pytest_cache/

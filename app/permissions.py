@@ -1,13 +1,12 @@
 
 from functools import wraps
-from functools import wraps
 
 from flask import abort
 from flask_login import current_user, login_required
 
 
 def roles_required(*allowed_roles):
-    """Allow access only to authenticated users with an approved role."""
+    """Restrict a route to authenticated users with approved roles."""
 
     def decorator(view_function):
         @wraps(view_function)

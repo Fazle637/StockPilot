@@ -1,4 +1,4 @@
-```html
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -45,6 +45,7 @@
             <table>
                 <thead>
                     <tr>
+                        <th>image</th>
                         <th>Name</th>
                         <th>SKU</th>
                         <th>Quantity</th>
@@ -55,8 +56,28 @@
 
                 <tbody>
                     {% for product in products %}
+                        
                         <tr>
+                            <td>
+                                {% if product.image_filename %}
+                                    <img
+                                        src="{{ url_for(
+                                            'inventory.product_image',
+                                            filename=product.image_filename
+                                        ) }}"
+                                        alt="{{ product.name }}"
+                                        width="80"
+                                        height="80"
+                                        loading="lazy"
+                                        style="object-fit: cover;"
+                                    >
+                                {% else %}
+                                    No image
+                                {% endif %}
+                            </td>
+
                             <td>{{ product.name }}</td>
+
                             <td>{{ product.sku }}</td>
                             <td>{{ product.quantity }}</td>
                             <td>{{ "%.2f"|format(product.unit_price) }}</td>
@@ -68,6 +89,17 @@
                                 ) }}">
                                     Edit
                                 </a>
+
+                                |
+
+                                <a href="{{ url_for(
+                                    'stock_notes.product_notes',
+                                    product_id=product.id
+                                ) }}">
+                                    Stock Notes
+                                </a>
+
+                                |
 
                                 <form
                                     method="POST"
@@ -101,4 +133,3 @@
     </main>
 </body>
 </html>
-```
