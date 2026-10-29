@@ -4,15 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>StockPilot — Orders</title>
+    <title>StockPilot - Orders</title>
 </head>
 <body>
     <main>
         <h1>Order Management</h1>
 
-        <p>
-            Signed in as {{ current_user.username }}
-        </p>
+        <p>Signed in as {{ current_user.username }}</p>
 
         <p>
             <a href="{{ url_for('home') }}">Dashboard</a> |
@@ -34,8 +32,10 @@
                         <th>Created</th>
                         <th>Status</th>
                         <th>Items</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     {% for order in orders %}
                         <tr>
@@ -46,10 +46,33 @@
                                 {% for item in order.items %}
                                     <p>
                                         {{ item.product.name }}
-                                        × {{ item.quantity }}
-                                        — {{ "%.2f"|format(item.unit_price) }}
+                                        &times; {{ item.quantity }}
+                                        &mdash; {{ "%.2f"|format(item.unit_price) }}
                                     </p>
                                 {% endfor %}
+                            </td>
+                            <td>
+                                {% if order.status == "pending" %}
+                                    {% if order.items|length == 1 %}
+                                        <a href="{{ url_for('orders.edit_order', order_id=order.id) }}">
+                                            Edit
+                                        </a>
+                                    {% endif %}
+
+                                    <form
+                                        method="POST"
+                                        action="{{ url_for('orders.delete_order', order_id=order.id) }}"
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="csrf_token"
+                                            value="{{ csrf_token() }}"
+                                        >
+                                        <button type="submit">Delete</button>
+                                    </form>
+                                {% else %}
+                                    <span>No actions available</span>
+                                {% endif %}
                             </td>
                         </tr>
                     {% endfor %}
