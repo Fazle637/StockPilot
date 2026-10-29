@@ -7,7 +7,7 @@ from flask_login import current_user, login_required
 from sqlalchemy.exc import IntegrityError
 
 from app import db
-from app.models import Product
+from app.models import Order, OrderItem, Product
 
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
@@ -213,3 +213,141 @@ def api_delete_product(product_id):
         }), 409
 
     return jsonify({"message": "Product deleted successfully."})
+
+
+@api_bp.get("/orders")
+@login_required
+def api_list_orders():
+    orders = (
+        Order.query
+        .filter_by(created_by_id=current_user.id)
+        .order_by(Order.created_at.desc())
+        .all()
+    )
+
+    return jsonify([
+        {
+            "id": order.id,
+            "status": order.status,
+            "created_at": order.created_at.isoformat(),
+            "items": [
+                {
+                    "product_id": item.product_id,
+                    "quantity": item.quantity,
+                    "unit_price": str(item.unit_price),
+                }
+                for item in order.items
+            ],
+        }
+        for order in orders
+    ])
+
+
+@api_bp.get("/orders/<int:order_id>")
+@login_required
+def api_get_order(order_id):
+    order = Order.query.filter_by(
+        id=order_id,
+        created_by_id=current_user.id,
+    ).first()
+
+    if order is None:
+        return jsonify({"error": "Order not found."}), 404
+
+    return jsonify({
+        "id": order.id,
+        "status": order.status,
+        "created_at": order.created_at.isoformat(),
+        "items": [
+            {
+                "product_id": item.product_id,
+                "quantity": item.quantity,
+                "unit_price": str(item.unit_price),
+            }
+            for item in order.items
+        ],
+    })
+
+
+@api_bp.post("/orders")
+@login_required
+def api_create_order():
+    data = get_json_object()
+
+    if data is None:
+        return jsonify({"error": "A JSON object is required."}), 400
+
+    if set(data) != {"product_id", "quantity"}:
+        return jsonify({
+            "error": "Provide only product_id and quantity."
+        }), 400
+
+    product_id = data["product_id"]
+    quantity = data["quantity"]
+
+    # bool is a subclass of int in Python, so reject it explicitly.
+    if (
+        isinstance(product_id, bool)
+        or not isinstance(product_id, int)
+        or product_id <= 0
+    ):
+        return jsonify({"error": "Invalid product ID."}), 400
+
+    if (
+        isinstance(quantity, bool)
+        or not isinstance(quantity, int)
+        or not 1 <= quantity <= 1_000_000
+    ):
+        return jsonify({
+            "error": "Quantity must be a positive integer."
+        }), 400
+
+    try:
+        product = (
+            Product.query
+            .filter_by(id=product_id, owner_id=current_user.id)
+            .with_for_update()
+            .first()
+        )
+
+        if product is None:
+            return jsonify({"error": "Product not found."}), 404
+
+        if product.quantity < quantity:
+            return jsonify({
+                "error": "Insufficient stock."
+            }), 409
+
+        order = Order(
+            status="pending",
+            created_by_id=current_user.id,
+        )
+        db.session.add(order)
+        db.session.flush()
+
+        item = OrderItem(
+            order_id=order.id,
+            product_id=product.id,
+            quantity=quantity,
+            unit_price=product.unit_price,
+        )
+        db.session.add(item)
+
+        product.quantity -= quantity
+        db.session.commit()
+
+        return jsonify({
+            "id": order.id,
+            "status": order.status,
+            "items": [
+                {
+                    "product_id": item.product_id,
+                    "quantity": item.quantity,
+                    "unit_price": str(item.unit_price),
+                }
+            ],
+        }), 201
+
+    except Exception:
+        db.session.rollback()
+        raise
