@@ -351,3 +351,151 @@ def api_create_order():
     except Exception:
         db.session.rollback()
         raise
+
+
+@api_bp.patch("/orders/<int:order_id>")
+@login_required
+def api_update_order(order_id):
+    data = get_json_object()
+
+    if data is None:
+        return jsonify({"error": "A JSON object is required."}), 400
+
+    if set(data) != {"quantity"}:
+        return jsonify({
+            "error": "Provide only the quantity field."
+        }), 400
+
+    quantity = data["quantity"]
+
+    if (
+        isinstance(quantity, bool)
+        or not isinstance(quantity, int)
+        or not 1 <= quantity <= 1_000_000
+    ):
+        return jsonify({
+            "error": "Quantity must be a positive integer."
+        }), 400
+
+    try:
+        order = (
+            Order.query
+            .filter_by(
+                id=order_id,
+                created_by_id=current_user.id,
+            )
+            .with_for_update()
+            .first()
+        )
+
+        if order is None:
+            return jsonify({"error": "Order not found."}), 404
+
+        if order.status != "pending":
+            return jsonify({
+                "error": "Only pending orders can be updated."
+            }), 409
+
+        if len(order.items) != 1:
+            return jsonify({
+                "error": "This order cannot be updated automatically."
+            }), 409
+
+        item = order.items[0]
+
+        product = (
+            Product.query
+            .filter_by(
+                id=item.product_id,
+                owner_id=current_user.id,
+            )
+            .with_for_update()
+            .first()
+        )
+
+        if product is None:
+            return jsonify({"error": "Product not found."}), 404
+
+        # Return the old reservation before checking the new quantity.
+        available_stock = product.quantity + item.quantity
+
+        if quantity > available_stock:
+            return jsonify({
+                "error": "Insufficient stock."
+            }), 409
+
+        product.quantity = available_stock - quantity
+        item.quantity = quantity
+
+        db.session.commit()
+
+        return jsonify({
+            "id": order.id,
+            "status": order.status,
+            "items": [
+                {
+                    "product_id": item.product_id,
+                    "quantity": item.quantity,
+                    "unit_price": str(item.unit_price),
+                }
+            ],
+        }), 200
+
+    except Exception:
+        db.session.rollback()
+        raise
+
+
+@api_bp.delete("/orders/<int:order_id>")
+@login_required
+def api_delete_order(order_id):
+    try:
+        order = (
+            Order.query
+            .filter_by(
+                id=order_id,
+                created_by_id=current_user.id,
+            )
+            .with_for_update()
+            .first()
+        )
+
+        if order is None:
+            return jsonify({"error": "Order not found."}), 404
+
+        if order.status != "pending":
+            return jsonify({
+                "error": "Only pending orders can be deleted."
+            }), 409
+
+        # Restore stock before deleting the order.
+        for item in order.items:
+            product = (
+                Product.query
+                .filter_by(
+                    id=item.product_id,
+                    owner_id=current_user.id,
+                )
+                .with_for_update()
+                .first()
+            )
+
+            if product is None:
+                db.session.rollback()
+                return jsonify({
+                    "error": "An order product could not be found."
+                }), 409
+
+            product.quantity += item.quantity
+
+        db.session.delete(order)
+        db.session.commit()
+
+        return jsonify({
+            "message": "Order deleted successfully."
+        }), 200
+
+    except Exception:
+        db.session.rollback()
+        raise
+

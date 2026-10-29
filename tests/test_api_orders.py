@@ -2,7 +2,7 @@
 import pytest
 
 from app import db
-from app.models import Product
+from app.models import Order, Product
 
 from tests.test_inventory import register_and_login
 
@@ -219,3 +219,191 @@ def test_api_order_rejects_non_json_request(api_user):
     assert response.status_code == 400
     assert response.is_json
     assert "error" in response.get_json()
+
+
+def test_api_user_can_update_pending_order_quantity(api_user):
+    product = create_product(
+        api_user,
+        sku="API-ORDER-UPDATE-001",
+        quantity=10,
+    )
+
+    created = api_user.post(
+        "/api/orders",
+        json={"product_id": product["id"], "quantity": 3},
+    )
+    assert created.status_code == 201
+    order_id = created.get_json()["id"]
+
+    response = api_user.patch(
+        f"/api/orders/{order_id}",
+        json={"quantity": 5},
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["items"][0]["quantity"] == 5
+
+    updated_product = api_user.get(
+        f"/api/products/{product['id']}"
+    ).get_json()
+    assert updated_product["quantity"] == 5
+
+
+def test_api_order_update_rejects_insufficient_stock(api_user):
+    product = create_product(
+        api_user,
+        sku="API-ORDER-UPDATE-002",
+        quantity=5,
+    )
+
+    created = api_user.post(
+        "/api/orders",
+        json={"product_id": product["id"], "quantity": 3},
+    )
+    order_id = created.get_json()["id"]
+
+    response = api_user.patch(
+        f"/api/orders/{order_id}",
+        json={"quantity": 6},
+    )
+
+    assert response.status_code == 409
+
+    # The rejected update must leave both order and stock unchanged.
+    detail = api_user.get(f"/api/orders/{order_id}").get_json()
+    assert detail["items"][0]["quantity"] == 3
+
+    updated_product = api_user.get(
+        f"/api/products/{product['id']}"
+    ).get_json()
+    assert updated_product["quantity"] == 2
+
+
+def test_api_user_cannot_update_another_users_order(client):
+    register_and_login(
+        client,
+        "order_update_owner",
+        "order_update_owner@example.com",
+    )
+
+    product = create_product(
+        client,
+        sku="API-ORDER-UPDATE-003",
+        quantity=10,
+    )
+
+    created = client.post(
+        "/api/orders",
+        json={"product_id": product["id"], "quantity": 2},
+    )
+    assert created.status_code == 201
+    order_id = created.get_json()["id"]
+
+    client.post("/logout")
+
+    register_and_login(
+        client,
+        "order_update_other",
+        "order_update_other@example.com",
+    )
+
+    response = client.patch(
+        f"/api/orders/{order_id}",
+        json={"quantity": 4},
+    )
+
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "Order not found."}
+
+
+
+def test_api_user_can_delete_pending_order_and_restore_stock(api_user):
+    product = create_product(
+        api_user,
+        sku="API-ORDER-DELETE-001",
+        quantity=10,
+    )
+
+    created = api_user.post(
+        "/api/orders",
+        json={"product_id": product["id"], "quantity": 3},
+    )
+    assert created.status_code == 201
+    order_id = created.get_json()["id"]
+
+    response = api_user.delete(f"/api/orders/{order_id}")
+
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "message": "Order deleted successfully."
+    }
+
+    detail = api_user.get(f"/api/orders/{order_id}")
+    assert detail.status_code == 404
+
+    updated_product = api_user.get(
+        f"/api/products/{product['id']}"
+    ).get_json()
+    assert updated_product["quantity"] == 10
+
+
+def test_api_user_cannot_delete_another_users_order(client):
+    register_and_login(
+        client,
+        "order_delete_owner",
+        "order_delete_owner@example.com",
+    )
+
+    product = create_product(
+        client,
+        sku="API-ORDER-DELETE-002",
+        quantity=10,
+    )
+
+    created = client.post(
+        "/api/orders",
+        json={"product_id": product["id"], "quantity": 2},
+    )
+    assert created.status_code == 201
+    order_id = created.get_json()["id"]
+
+    client.post("/logout")
+
+    register_and_login(
+        client,
+        "order_delete_other",
+        "order_delete_other@example.com",
+    )
+
+    response = client.delete(f"/api/orders/{order_id}")
+    assert response.status_code == 404
+
+
+def test_api_user_cannot_delete_non_pending_order(api_user):
+    product = create_product(
+        api_user,
+        sku="API-ORDER-DELETE-003",
+        quantity=10,
+    )
+
+    created = api_user.post(
+        "/api/orders",
+        json={"product_id": product["id"], "quantity": 2},
+    )
+    order_id = created.get_json()["id"]
+
+    # Change the status in the test database to simulate processing.
+    with api_user.application.app_context():
+        order = db.session.get(Order, order_id)
+        order.status = "processing"
+        db.session.commit()
+
+    response = api_user.delete(f"/api/orders/{order_id}")
+
+    assert response.status_code == 409
+
+    updated_product = api_user.get(
+        f"/api/products/{product['id']}"
+    ).get_json()
+    assert updated_product["quantity"] == 8
+
