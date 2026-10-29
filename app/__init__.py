@@ -43,7 +43,7 @@ def create_app(test_config=None):
     login_manager.session_protection = "basic"
 
     from app.models import User
-    from app import models  # noqa: F401
+    from app import models 
     from app.auth import auth_bp
 
     @login_manager.user_loader
@@ -66,6 +66,9 @@ def create_app(test_config=None):
     from app.stock_note_routes import stock_notes_bp
     
     app.register_blueprint(stock_notes_bp)
+
+    from app.api_routes import api_bp
+    app.register_blueprint(api_bp)
 
     @app.get("/")
     @login_required
