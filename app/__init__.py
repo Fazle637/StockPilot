@@ -34,6 +34,11 @@ def create_app(test_config=None):
     if test_config:
         app.config.update(test_config)
 
+    if not app.config.get("SECRET_KEY"):
+        raise RuntimeError(
+            "SECRET_KEY must be configured in the environment."
+        )
+
 
     db.init_app(app)
     login_manager.init_app(app)

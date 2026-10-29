@@ -1,157 +1,223 @@
-# StockPilot — Inventory and Order Management
+# StockPilot — Inventory and Order Management System
 
-StockPilot is a web application built with Python, Flask, Flask-SQLAlchemy, and SQLite. It helps authenticated users manage inventory products, create orders, and collaborate through stock notes.
+StockPilot is a web-based inventory and order management application developed using Python and Flask. It allows authenticated users to manage products, track inventory quantities, create orders, and collaborate through shared stock notes.
+
+The project was developed for the Web Application Programming course at the Romanian-American University (RAU).
 
 ## Features
 
-- User registration, login, logout, and session management.
-- Server-side role enforcement for admin and staff accounts.
-- Product creation, viewing, editing, and deletion.
-- Product search by name or SKU.
-- Product image uploads with validation.
-- Order creation with stock availability checks.
-- Order management through HTML pages and a JSON API.
-- Shared stock notes attached to inventory products.
-- Database relationships between users, products, orders, and order items.
-- Automated tests for authentication, validation, and access control.
+- **Authentication:** User registration, login, logout, and session management.
+- **Role-based access control:** Admin and staff roles enforced on the server.
+- **Inventory management:** Create, view, edit, delete, and search products.
+- **Product images:** Upload and view validated product images.
+- **Order management:** Create orders, check available stock, and track order status.
+- **Stock notes:** Add notes to products and allow other authorized users to read them.
+- **REST-style JSON API:** Manage products and orders through API endpoints.
+- **Input validation:** Validate submitted data on the server.
+- **Security:** Password hashing, CSRF protection, authentication checks, and resource ownership restrictions.
+- **Automated testing:** Pytest tests for authentication, validation, and access control.
 
 ## Technology Stack
 
-- Python
-- Flask
-- Flask-SQLAlchemy and SQLAlchemy
-- Flask-Login
-- Flask-WTF for CSRF protection
-- SQLite for local development
-- Pytest for automated testing
-- Pillow for product image validation
+| Technology | Purpose |
+|---|---|
+| Python | Backend programming |
+| Flask | Web application framework |
+| Flask-SQLAlchemy | Database integration and ORM |
+| SQLite | Local development database |
+| Flask-Login | User authentication and sessions |
+| Flask-WTF | CSRF protection |
+| Pillow | Product image validation |
+| Pytest | Automated testing |
+| HTML and CSS | User interface |
+
+## Project Structure
+
+```text
+StockPilot/
+├── app/
+│   ├── __init__.py
+│   ├── models.py
+│   ├── routes.py
+│   ├── auth.py
+│   ├── permissions.py
+│   ├── order_routes.py
+│   ├── stock_note_routes.py
+│   ├── api_routes.py
+│   ├── templates/
+│   └── uploads/
+├── tests/
+│   ├── test_auth.py
+│   ├── test_inventory.py
+│   ├── test_product_images.py
+│   ├── test_stock_notes.py
+│   └── test_api_orders.py
+├── uploads/
+├── instance/
+├── .env.example
+├── .gitignore
+├── requirements.txt
+├── run.py
+├── seed.py
+├── README.md
+└── SECURITY.md
+```
 
 ## Requirements
 
-- Python 3.13 or a compatible supported Python version.
-- Git.
-- A terminal such as PowerShell.
-- A web browser.
+- Python 3.13 or a compatible supported Python version
+- Git
+- PowerShell or another terminal
+- A web browser
+
+SQLite is used for local development, so a separate database server is not required.
 
 ## Installation
 
-Clone the repository:
+### 1. Clone the repository
 
 ```powershell
 git clone https://github.com/Fazle637/StockPilot.git
 cd StockPilot
 ```
 
-Create and activate a virtual environment on Windows:
+### 2. Create a virtual environment
 
 ```powershell
 py -3.13 -m venv .venv
+```
+
+Activate it in Windows PowerShell:
+
+```powershell
 .\.venv\Scripts\Activate.ps1
 ```
 
-Install dependencies:
+### 3. Install dependencies
 
 ```powershell
 python -m pip install -r requirements.txt
 ```
 
-If PowerShell does not allow virtual-environment activation, consult your Python environment configuration or use the appropriate activation command for your terminal.
-
-## Environment Configuration
+### 4. Configure environment variables
 
 Create a `.env` file in the project root, next to `run.py`.
 
-Generate a secret key:
+Generate a random secret key:
 
 ```powershell
 python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-Add the following configuration to `.env`, replacing the placeholder with the generated secret:
+Add the following configuration to `.env`:
 
 ```dotenv
 SECRET_KEY=replace_with_your_generated_secret
 DATABASE_URL=sqlite:///stockpilot.db
 ```
 
-Never commit `.env` or disclose its contents. The repository includes `.env.example` for documenting required configuration variables.
+Replace the secret placeholder with the generated value. Do not commit `.env` or share its contents. The `.env.example` file documents the required configuration variables.
 
-## Initialize the Database
+## Database Setup
 
-The application uses SQLite for local development. The configured database file is created in Flask's instance directory when the application initializes the database tables.
+StockPilot uses SQLite for local development.
 
-The seed script creates demonstration users and related inventory data:
+The application uses Flask-SQLAlchemy to manage database access. Before using the application, ensure that the required tables have been initialized.
+
+To create local demonstration data, run:
 
 ```powershell
 python seed.py
 ```
 
-The script is intended for local development. Review its demo accounts and credentials before use, and never expose predictable demo credentials in a public deployment.
+The seed script creates demonstration users, products, orders, order items, and stock notes while preserving existing records where supported.
+
+**Important:** The seed script uses demonstration credentials. Keep these accounts in local development and change or disable them before any public deployment.
 
 ## Run the Application
 
-Start the Flask development server:
+Start the development server:
 
 ```powershell
 python run.py
 ```
 
-Open the local address displayed in the terminal, normally:
+Open the address displayed in your terminal. By default, it is:
 
 http://127.0.0.1:5000
 
-Register an account or use a local demonstration account.
+You can register a staff account or sign in with an existing development account.
 
-Do not use Flask's development server as a production server.
+Use the Flask development server for local development only, not public production hosting.
 
-## Run Automated Tests
+## Main Pages
 
-Run the full test suite:
+| Page | Route | Purpose |
+|---|---|---|
+| Dashboard | `/` | Main application page |
+| Registration | `/register` | Create a user account |
+| Login | `/login` | Authenticate a user |
+| Inventory | `/inventory/` | View and search products |
+| New product | `/inventory/new` | Add a product |
+| Edit product | `/inventory/<product_id>/edit` | Update an owned product |
+| Orders | `/orders/` | View the current user's orders |
+| New order | `/orders/new` | Create an order |
+| Stock notes | `/inventory/<product_id>/notes` | Read and add product notes |
+| Edit order | `/orders/<order_id>/edit` | Update an owned pending order |
+
+## JSON API Endpoints
+
+The application provides ten JSON API endpoints for products and orders.
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/products` | List the current user's products |
+| POST | `/api/products` | Create a product |
+| GET | `/api/products/<product_id>` | Retrieve a product |
+| PATCH | `/api/products/<product_id>` | Update a product |
+| DELETE | `/api/products/<product_id>` | Delete a product |
+| GET | `/api/orders` | List the current user's orders |
+| GET | `/api/orders/<order_id>` | Retrieve an order |
+| POST | `/api/orders` | Create an order |
+| PATCH | `/api/orders/<order_id>` | Update a pending order |
+| DELETE | `/api/orders/<order_id>` | Delete a pending order |
+
+API requests require authentication. The server validates submitted data and checks resource ownership before allowing access or changes.
+
+## Automated Tests
+
+Run the complete test suite from the project root:
 
 ```powershell
 python -m pytest -v
 ```
 
-The tests cover authentication, role enforcement, product CRUD operations, ownership restrictions, product image validation, stock notes, and order API behavior.
+The test suite covers:
 
-## Main Pages
+- Registration, login, logout, and session behavior
+- Role-based access restrictions
+- Product creation and validation
+- Product ownership and access control
+- Product image validation and access control
+- Stock note creation and visibility
+- Order creation, stock validation, and order ownership
+- JSON API authentication and request validation
+- Web order editing, deletion, stock restoration, and ownership restrictions
 
-- `/` — Dashboard
-- `/register` — Registration
-- `/login` — Login
-- `/inventory/` — Inventory
-- `/inventory/new` — Create a product
-- `/orders/` — Orders
-- `/orders/new` — Create an order
-- `/inventory/<product_id>/notes` — Product stock notes
+The current test suite contains **52 passing tests**. Run the command above to verify the results after any changes.
 
-Additional routes support product editing, deletion, image viewing, and JSON API operations.
+## Security Considerations
 
-## JSON API
+StockPilot implements password hashing, session-based authentication, server-side role checks, CSRF protection, ownership-scoped database queries, input validation, and product image validation.
 
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| GET | `/api/products` | List the authenticated user's products |
-| POST | `/api/products` | Create a product |
-| GET | `/api/products/<product_id>` | Retrieve an owned product |
-| PATCH | `/api/products/<product_id>` | Update an owned product |
-| DELETE | `/api/products/<product_id>` | Delete an owned product |
-| GET | `/api/orders` | List the authenticated user's orders |
-| GET | `/api/orders/<order_id>` | Retrieve an owned order |
-| POST | `/api/orders` | Create an order |
+Review [SECURITY.md](SECURITY.md) for additional information about security controls and testing.
 
-API access requires authentication. Resource ownership and request validation must also be enforced by the server.
+Never commit secrets, production credentials, personal data, or private uploaded files to the repository.
 
-## Security
+## Future Improvements
 
-StockPilot uses password hashing, authenticated sessions, CSRF protection, server-side role checks, ownership-scoped queries, validated input, and product image validation.
+Potential improvements include database migrations, expanded administrative functionality, additional API tests, and deployment to a production hosting environment.
 
-Read `SECURITY.md` for additional security details and known limitations.
+## Author
 
-## Development Notes
-
-- Keep secrets in environment variables.
-- Do not commit virtual environments, database files containing personal data, or uploaded user files.
-- Run the automated tests after making changes.
-- Review migrations and database initialization before changing database schemas.
-- Use a production-grade WSGI server and HTTPS when deploying publicly.
+Developed as an individual university project for the Web Application Programming course at the Romanian-American University.
