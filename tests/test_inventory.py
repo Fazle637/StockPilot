@@ -458,3 +458,109 @@ def test_api_users_cannot_access_each_others_products(app):
         assert product.owner_id != attacker_id
         assert product.name == "Private API Product"
         assert product.quantity == 10
+
+#automated tests for API validation and error handling
+def test_products_api_rejects_non_json_request(client):
+    register_and_login(
+        client,
+        "api_validation_user",
+        "api_validation@example.com",
+    )
+
+    response = client.post(
+        "/api/products",
+        data="this is not JSON",
+        content_type="text/plain",
+    )
+
+    assert response.status_code == 400
+    assert response.is_json
+    assert "error" in response.get_json()
+
+def test_products_api_rejects_negative_price(client):
+    register_and_login(
+        client,
+        "api_price_user",
+        "api_price@example.com",
+    )
+
+    response = client.post(
+        "/api/products",
+        json={
+            "name": "Monitor",
+            "sku": "MONITOR-NEG-001",
+            "description": "Computer monitor",
+            "quantity": 5,
+            "unit_price": "-10.00",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.is_json
+    assert "error" in response.get_json()
+
+
+def test_products_api_rejects_missing_fields(client):
+    register_and_login(
+        client,
+        "api_missing_user",
+        "api_missing@example.com",
+    )
+
+    response = client.post(
+        "/api/products",
+        json={
+            "name": "Keyboard",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.is_json
+    assert "error" in response.get_json()
+
+
+def test_products_api_rejects_negative_quantity(client):
+    register_and_login(
+        client,
+        "api_quantity_user",
+        "api_quantity@example.com",
+    )
+
+    response = client.post(
+        "/api/products",
+        json={
+            "name": "Keyboard",
+            "sku": "KEYBOARD-001",
+            "description": "Mechanical keyboard",
+            "quantity": -5,
+            "unit_price": "99.99",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.is_json
+    assert "error" in response.get_json()
+
+
+def test_products_api_rejects_duplicate_sku(client):
+    register_and_login(
+        client,
+        "api_duplicate_user",
+        "api_duplicate@example.com",
+    )
+
+    product = {
+        "name": "Keyboard",
+        "sku": "DUPLICATE-001",
+        "description": "Mechanical keyboard",
+        "quantity": 10,
+        "unit_price": "99.99",
+    }
+
+    first_response = client.post("/api/products", json=product)
+    second_response = client.post("/api/products", json=product)
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 409
+    assert second_response.is_json
+    assert "error" in second_response.get_json()
