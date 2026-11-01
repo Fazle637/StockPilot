@@ -134,3 +134,33 @@ def test_admin_can_access_admin_only_route(client, app):
     assert response.get_json() == {
         "message": "admin access granted"
     }
+
+
+def test_staff_cannot_access_real_admin_users_page(client):
+    register_user(client)
+    login_user(client)
+
+    response = client.get("/admin/users")
+
+    assert response.status_code == 403
+
+
+def test_admin_can_access_real_admin_users_page(client, app):
+    register_user(client)
+
+    # Promote the test account in the test database.
+    with app.app_context():
+        user = User.query.filter_by(
+            username="stockpilot_test"
+        ).first()
+
+        user.role = "admin"
+        db.session.commit()
+
+    login_user(client)
+
+    response = client.get("/admin/users")
+
+    assert response.status_code == 200
+    assert b"User Management" in response.data
+    assert b"stockpilot_test" in response.data

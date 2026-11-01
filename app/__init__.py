@@ -18,7 +18,7 @@ csrf = CSRFProtect()
 def create_app(test_config=None):
     app = Flask(__name__)
 
-    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-only-change-me")
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
         "DATABASE_URL",
         "sqlite:///stockpilot.db",
@@ -74,6 +74,9 @@ def create_app(test_config=None):
 
     from app.api_routes import api_bp
     app.register_blueprint(api_bp)
+
+    from app.admin_routes import admin_bp
+    app.register_blueprint(admin_bp)
 
     @app.get("/")
     @login_required

@@ -34,7 +34,18 @@
                     View Orders
                 </a>
             </p>
-        </section>>
+        </section>
+
+        {% if current_user.role == "admin" %}
+        <section>
+            <h2>Administration</h2>
+            <p>
+                <a href="{{ url_for('admin.list_users') }}">
+                    Manage Users
+                </a>
+            </p>
+        </section>
+        {% endif %}
         
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% for category, message in messages %}
