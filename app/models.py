@@ -50,6 +50,7 @@ class Product(db.Model):
 
     owner = db.relationship("User", back_populates="products")
     order_items = db.relationship("OrderItem", back_populates="product")
+    stock_notes = db.relationship("StockNote", back_populates="product")
 
     __table_args__ = (
         CheckConstraint("quantity >= 0", name="check_product_quantity"),
@@ -145,4 +146,4 @@ class StockNote(db.Model):
     )
 
     author = db.relationship("User", back_populates="stock_notes")
-    product = db.relationship("Product", backref="stock_notes")
+    product = db.relationship("Product", back_populates="stock_notes")
