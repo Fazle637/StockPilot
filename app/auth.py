@@ -6,6 +6,7 @@ from flask import (
     redirect,
     url_for,
     flash,
+    session,
 )
 from flask_login import (
     login_user,
@@ -109,6 +110,8 @@ def login():
             user.password_hash,
             password,
         ):
+            session.clear()
+            session.permanent = True
             login_user(user, remember=False)
             return redirect(url_for("home"))
 

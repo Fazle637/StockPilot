@@ -1,9 +1,12 @@
 
+from datetime import timedelta
+
 from flask import jsonify
 
 from app import db
 from app.models import User
 from app.permissions import roles_required
+
 
 def register_user(client):
     return client.post(
@@ -164,3 +167,76 @@ def test_admin_can_access_real_admin_users_page(client, app):
     assert response.status_code == 200
     assert b"User Management" in response.data
     assert b"stockpilot_test" in response.data
+
+def test_session_cookie_security_configuration(app):
+    assert app.config["SESSION_COOKIE_HTTPONLY"] is True
+    assert app.config["SESSION_COOKIE_SAMESITE"] == "Lax"
+    assert app.config["SESSION_COOKIE_SECURE"] is False
+
+
+def test_session_lifetime_is_30_minutes(app):
+    from datetime import timedelta
+
+    assert app.config["PERMANENT_SESSION_LIFETIME"] == timedelta(
+        minutes=30
+    )
+
+
+def test_session_is_permanent_after_login(client):
+    register_user(client)
+    login_user(client)
+
+    with client.session_transaction() as session:
+        assert session.permanent is True
+
+
+def test_session_cookie_has_security_flags(client):
+    register_user(client)
+
+    response = client.post(
+        "/login",
+        data={
+            "identifier": "stockpilot_test",
+            "password": "TestPassword123!",
+        },
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    cookie_header = response.headers.get("Set-Cookie", "")
+    assert "HttpOnly" in cookie_header
+    assert "SameSite=Lax" in cookie_header
+    assert "Secure" not in cookie_header
+
+
+def test_session_cookie_security_configuration(app):
+    assert app.config["SESSION_COOKIE_HTTPONLY"] is True
+    assert app.config["SESSION_COOKIE_SAMESITE"] == "Lax"
+    assert app.config["SESSION_COOKIE_SECURE"] is False
+
+
+def test_session_lifetime_is_30_minutes(app):
+    assert app.config["PERMANENT_SESSION_LIFETIME"] == timedelta(
+        minutes=30
+    )
+
+def test_session_is_permanent_after_login(client):
+    register_user(client)
+    login_user(client)
+
+    with client.session_transaction() as session:
+        assert session.permanent is True
+
+
+def test_session_cookie_has_security_flags(client):
+    register_user(client)
+
+    response = login_user(client)
+
+    assert response.status_code == 302
+
+    cookie_header = response.headers.get("Set-Cookie", "")
+
+    assert "HttpOnly" in cookie_header
+    assert "SameSite=Lax" in cookie_header
+    assert "Secure" not in cookie_header

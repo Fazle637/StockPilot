@@ -1,11 +1,10 @@
-
-
 import os
+from datetime import timedelta
 
 from flask import Flask, jsonify, render_template
-from flask_wtf.csrf import CSRFProtect
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import  LoginManager, current_user, login_required
+from flask_wtf.csrf import CSRFProtect
+from flask_login import LoginManager, login_required
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -31,6 +30,15 @@ def create_app(test_config=None):
         "uploads",
     )
     
+    # Session security settings
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = (
+        os.getenv("SESSION_COOKIE_SECURE", "false").lower()
+        in {"1", "true", "yes"}
+    )
+    app.config["SESSION_REFRESH_EACH_REQUEST"] = False
     if test_config:
         app.config.update(test_config)
 
