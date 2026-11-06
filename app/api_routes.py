@@ -2,7 +2,6 @@
 from decimal import Decimal, InvalidOperation
 
 from flask import Blueprint, jsonify, request
-from flask_login import current_user
 from flask_login import current_user, login_required
 from sqlalchemy.exc import IntegrityError
 
@@ -215,15 +214,21 @@ def api_delete_product(product_id):
     return jsonify({"message": "Product deleted successfully."})
 
 
+
+
 @api_bp.get("/orders")
 @login_required
 def api_list_orders():
-    orders = (
-        Order.query
-        .filter_by(created_by_id=current_user.id)
-        .order_by(Order.created_at.desc())
-        .all()
-    )
+    if current_user.role == "admin":
+        query = Order.query
+    else:
+        query = Order.query.filter_by(
+            created_by_id=current_user.id
+        )
+
+    orders = query.order_by(
+        Order.created_at.desc()
+    ).all()
 
     return jsonify([
         {
@@ -243,13 +248,17 @@ def api_list_orders():
     ])
 
 
+
 @api_bp.get("/orders/<int:order_id>")
 @login_required
 def api_get_order(order_id):
-    order = Order.query.filter_by(
-        id=order_id,
-        created_by_id=current_user.id,
-    ).first()
+    if current_user.role == "admin":
+        order = db.session.get(Order, order_id)
+    else:
+        order = Order.query.filter_by(
+            id=order_id,
+            created_by_id=current_user.id,
+        ).first()
 
     if order is None:
         return jsonify({"error": "Order not found."}), 404

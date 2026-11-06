@@ -11,18 +11,24 @@ from app.models import Order, OrderItem, Product
 orders_bp = Blueprint("orders", __name__, url_prefix="/orders")
 
 
-@orders_bp.get("/")
+@orders_bp.route("/")
 @login_required
 def list_orders():
-    orders = (
-        Order.query
-        .filter_by(created_by_id=current_user.id)
-        .order_by(Order.created_at.desc())
-        .all()
+    if current_user.role == "admin":
+        query = Order.query
+    else:
+        query = Order.query.filter_by(
+            created_by_id=current_user.id
+        )
+
+    orders = query.order_by(
+        Order.created_at.desc()
+    ).all()
+
+    return render_template(
+        "orders.html",
+        orders=orders,
     )
-
-    return render_template("orders.html", orders=orders)
-
 
 @orders_bp.route("/new", methods=["GET", "POST"])
 @login_required

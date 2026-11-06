@@ -1,6 +1,6 @@
 
 from app import db
-from app.models import Order, Product
+from app.models import Order, Product, User
 
 from tests.test_inventory import register_and_login
 
@@ -199,3 +199,64 @@ def test_user_cannot_delete_non_pending_order(client):
 
     with client.application.app_context():
         assert db.session.get(Order, order_id) is not None
+
+
+def test_admin_can_see_all_users_orders(client):
+    # Staff A creates an order.
+    register_and_login(
+        client,
+        "order_staff_a",
+        "order_staff_a@example.com",
+    )
+
+    product_a = create_product(client, "ADMIN-ORDER-001")
+    order_a_id = create_order(client, product_a["id"], 2)
+
+    client.post("/logout")
+
+    # Staff B creates another order.
+    register_and_login(
+        client,
+        "order_staff_b",
+        "order_staff_b@example.com",
+    )
+
+    product_b = create_product(client, "ADMIN-ORDER-002")
+    order_b_id = create_order(client, product_b["id"], 3)
+
+    client.post("/logout")
+
+    # Create an admin account.
+    register_and_login(
+        client,
+        "order_admin",
+        "order_admin@example.com",
+    )
+
+    with client.application.app_context():
+        admin = User.query.filter_by(
+            username="order_admin"
+        ).first()
+
+        admin.role = "admin"
+        db.session.commit()
+
+    client.post("/logout")
+
+    # Admin logs in and opens the orders page.
+    response = client.post(
+    "/login",
+    data={
+        "identifier": "order_admin",
+        "password": "TestPassword123!",
+    },
+    follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+
+    orders_page = client.get("/orders/")
+
+    assert orders_page.status_code == 200
+    assert str(order_a_id).encode() in orders_page.data
+    assert str(order_b_id).encode() in orders_page.data

@@ -2,7 +2,7 @@
 import pytest
 
 from app import db
-from app.models import Order, Product
+from app.models import Order, Product, User
 
 from tests.test_inventory import register_and_login
 
@@ -45,7 +45,9 @@ def test_api_user_can_create_order(api_user):
     )
 
     assert response.status_code == 201
+
     order = response.get_json()
+
     assert order["status"] == "pending"
     assert order["items"][0]["quantity"] == 3
     assert order["items"][0]["unit_price"] == "50.00"
@@ -115,16 +117,20 @@ def test_api_user_can_list_and_get_orders(api_user):
     order_id = created.get_json()["id"]
 
     listing = api_user.get("/api/orders")
+
     assert listing.status_code == 200
-    assert any(order["id"] == order_id for order in listing.get_json())
+    assert any(
+        order["id"] == order_id
+        for order in listing.get_json()
+    )
 
     detail = api_user.get(f"/api/orders/{order_id}")
+
     assert detail.status_code == 200
     assert detail.get_json()["id"] == order_id
 
 
-
-def test_api_order_rejects_another_users_product(client, app):
+def test_api_order_rejects_another_users_product(client):
     register_and_login(
         client,
         "order_owner",
@@ -136,7 +142,7 @@ def test_api_order_rejects_another_users_product(client, app):
         sku="API-ORDER-005",
     )
 
-    # Log out the owner and authenticate as a different user.
+    # Log out the owner and authenticate as another user.
     client.post("/logout")
 
     register_and_login(
@@ -157,7 +163,6 @@ def test_api_order_rejects_another_users_product(client, app):
     assert response.get_json() == {
         "error": "Product not found."
     }
-
 
 
 def test_api_user_cannot_read_another_users_order(client):
@@ -182,10 +187,12 @@ def test_api_user_cannot_read_another_users_order(client):
     )
 
     assert created.status_code == 201
+
     order_id = created.get_json()["id"]
 
-    # End User 1's session before registering User 2.
+    # End User 1's session.
     logout_response = client.post("/logout")
+
     assert logout_response.status_code == 302
 
     # User 2 registers and logs in using the same test client.
@@ -197,16 +204,17 @@ def test_api_user_cannot_read_another_users_order(client):
 
     # User 2 must not see User 1's individual order.
     detail = client.get(f"/api/orders/{order_id}")
+
     assert detail.status_code == 404
 
     # User 2's list must not contain User 1's order.
     listing = client.get("/api/orders")
+
     assert listing.status_code == 200
     assert all(
         order["id"] != order_id
         for order in listing.get_json()
     )
-
 
 
 def test_api_order_rejects_non_json_request(api_user):
@@ -230,9 +238,14 @@ def test_api_user_can_update_pending_order_quantity(api_user):
 
     created = api_user.post(
         "/api/orders",
-        json={"product_id": product["id"], "quantity": 3},
+        json={
+            "product_id": product["id"],
+            "quantity": 3,
+        },
     )
+
     assert created.status_code == 201
+
     order_id = created.get_json()["id"]
 
     response = api_user.patch(
@@ -246,6 +259,7 @@ def test_api_user_can_update_pending_order_quantity(api_user):
     updated_product = api_user.get(
         f"/api/products/{product['id']}"
     ).get_json()
+
     assert updated_product["quantity"] == 5
 
 
@@ -258,8 +272,12 @@ def test_api_order_update_rejects_insufficient_stock(api_user):
 
     created = api_user.post(
         "/api/orders",
-        json={"product_id": product["id"], "quantity": 3},
+        json={
+            "product_id": product["id"],
+            "quantity": 3,
+        },
     )
+
     order_id = created.get_json()["id"]
 
     response = api_user.patch(
@@ -269,13 +287,17 @@ def test_api_order_update_rejects_insufficient_stock(api_user):
 
     assert response.status_code == 409
 
-    # The rejected update must leave both order and stock unchanged.
-    detail = api_user.get(f"/api/orders/{order_id}").get_json()
+    # Rejected update must leave order and stock unchanged.
+    detail = api_user.get(
+        f"/api/orders/{order_id}"
+    ).get_json()
+
     assert detail["items"][0]["quantity"] == 3
 
     updated_product = api_user.get(
         f"/api/products/{product['id']}"
     ).get_json()
+
     assert updated_product["quantity"] == 2
 
 
@@ -294,9 +316,14 @@ def test_api_user_cannot_update_another_users_order(client):
 
     created = client.post(
         "/api/orders",
-        json={"product_id": product["id"], "quantity": 2},
+        json={
+            "product_id": product["id"],
+            "quantity": 2,
+        },
     )
+
     assert created.status_code == 201
+
     order_id = created.get_json()["id"]
 
     client.post("/logout")
@@ -313,8 +340,9 @@ def test_api_user_cannot_update_another_users_order(client):
     )
 
     assert response.status_code == 404
-    assert response.get_json() == {"error": "Order not found."}
-
+    assert response.get_json() == {
+        "error": "Order not found."
+    }
 
 
 def test_api_user_can_delete_pending_order_and_restore_stock(api_user):
@@ -326,24 +354,35 @@ def test_api_user_can_delete_pending_order_and_restore_stock(api_user):
 
     created = api_user.post(
         "/api/orders",
-        json={"product_id": product["id"], "quantity": 3},
+        json={
+            "product_id": product["id"],
+            "quantity": 3,
+        },
     )
+
     assert created.status_code == 201
+
     order_id = created.get_json()["id"]
 
-    response = api_user.delete(f"/api/orders/{order_id}")
+    response = api_user.delete(
+        f"/api/orders/{order_id}"
+    )
 
     assert response.status_code == 200
     assert response.get_json() == {
         "message": "Order deleted successfully."
     }
 
-    detail = api_user.get(f"/api/orders/{order_id}")
+    detail = api_user.get(
+        f"/api/orders/{order_id}"
+    )
+
     assert detail.status_code == 404
 
     updated_product = api_user.get(
         f"/api/products/{product['id']}"
     ).get_json()
+
     assert updated_product["quantity"] == 10
 
 
@@ -362,9 +401,14 @@ def test_api_user_cannot_delete_another_users_order(client):
 
     created = client.post(
         "/api/orders",
-        json={"product_id": product["id"], "quantity": 2},
+        json={
+            "product_id": product["id"],
+            "quantity": 2,
+        },
     )
+
     assert created.status_code == 201
+
     order_id = created.get_json()["id"]
 
     client.post("/logout")
@@ -375,7 +419,10 @@ def test_api_user_cannot_delete_another_users_order(client):
         "order_delete_other@example.com",
     )
 
-    response = client.delete(f"/api/orders/{order_id}")
+    response = client.delete(
+        f"/api/orders/{order_id}"
+    )
+
     assert response.status_code == 404
 
 
@@ -388,22 +435,172 @@ def test_api_user_cannot_delete_non_pending_order(api_user):
 
     created = api_user.post(
         "/api/orders",
-        json={"product_id": product["id"], "quantity": 2},
+        json={
+            "product_id": product["id"],
+            "quantity": 2,
+        },
     )
+
+    assert created.status_code == 201
+
     order_id = created.get_json()["id"]
 
-    # Change the status in the test database to simulate processing.
-    with api_user.application.app_context():
-        order = db.session.get(Order, order_id)
-        order.status = "processing"
-        db.session.commit()
+    # Change the order status to simulate processing.
+    order = db.session.get(Order, order_id)
 
-    response = api_user.delete(f"/api/orders/{order_id}")
+    order.status = "processing"
+    db.session.commit()
+
+    response = api_user.delete(
+        f"/api/orders/{order_id}"
+    )
 
     assert response.status_code == 409
 
     updated_product = api_user.get(
         f"/api/products/{product['id']}"
     ).get_json()
+
     assert updated_product["quantity"] == 8
 
+
+def test_api_admin_can_list_all_users_orders(client):
+    # Staff user 1 creates an order.
+    register_and_login(
+        client,
+        "api_admin_staff1",
+        "api_admin_staff1@example.com",
+    )
+
+    product1 = create_product(
+        client,
+        sku="API-ADMIN-ORDER-001",
+    )
+
+    order1 = client.post(
+        "/api/orders",
+        json={
+            "product_id": product1["id"],
+            "quantity": 2,
+        },
+    )
+
+    assert order1.status_code == 201
+
+    order1_id = order1.get_json()["id"]
+
+    # Staff user 2 creates another order.
+    client.post("/logout")
+
+    register_and_login(
+        client,
+        "api_admin_staff2",
+        "api_admin_staff2@example.com",
+    )
+
+    product2 = create_product(
+        client,
+        sku="API-ADMIN-ORDER-002",
+    )
+
+    order2 = client.post(
+        "/api/orders",
+        json={
+            "product_id": product2["id"],
+            "quantity": 3,
+        },
+    )
+
+    assert order2.status_code == 201
+
+    order2_id = order2.get_json()["id"]
+
+    # Register a third user and promote them to admin.
+    client.post("/logout")
+
+    register_and_login(
+        client,
+        "api_order_admin",
+        "api_order_admin@example.com",
+    )
+
+    admin = User.query.filter_by(
+        username="api_order_admin"
+    ).first()
+
+    assert admin is not None
+
+    admin.role = "admin"
+    db.session.commit()
+
+    assert admin.role == "admin"
+
+    # Admin must see both staff users' orders.
+    response = client.get("/api/orders")
+
+    assert response.status_code == 200
+
+    order_ids = {
+        order["id"]
+        for order in response.get_json()
+    }
+
+    assert order1_id in order_ids
+    assert order2_id in order_ids
+
+
+def test_api_admin_can_get_another_users_order(client):
+    # Staff user creates an order.
+    register_and_login(
+        client,
+        "api_detail_staff",
+        "api_detail_staff@example.com",
+    )
+
+    product = create_product(
+        client,
+        sku="API-ADMIN-DETAIL-001",
+    )
+
+    created = client.post(
+        "/api/orders",
+        json={
+            "product_id": product["id"],
+            "quantity": 2,
+        },
+    )
+
+    assert created.status_code == 201
+
+    order_id = created.get_json()["id"]
+
+    # Log out and register an admin.
+    client.post("/logout")
+
+    register_and_login(
+        client,
+        "api_detail_admin",
+        "api_detail_admin@example.com",
+    )
+
+    admin = User.query.filter_by(
+        username="api_detail_admin"
+    ).first()
+
+    assert admin is not None
+
+    admin.role = "admin"
+    db.session.commit()
+
+    # Verify admin authorization through the admin page.
+    admin_page = client.get("/admin/users")
+
+    assert admin_page.status_code == 200
+
+    # Admin can retrieve another user's individual order.
+    response = client.get(
+        f"/api/orders/{order_id}"
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["id"] == order_id
