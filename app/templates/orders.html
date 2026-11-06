@@ -52,7 +52,7 @@
                                 {% endfor %}
                             </td>
                             <td>
-                                {% if order.status == "pending" %}
+                                {% if order.status == "pending" and order.created_by_id == current_user.id %}
                                     {% if order.items|length == 1 %}
                                         <a href="{{ url_for('orders.edit_order', order_id=order.id) }}">
                                             Edit
