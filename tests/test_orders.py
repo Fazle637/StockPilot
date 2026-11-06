@@ -1,4 +1,3 @@
-
 from app import db
 from app.models import Order, Product, User
 
@@ -112,7 +111,7 @@ def test_user_cannot_edit_another_users_order(client):
         f"/orders/{order_id}/edit",
         data={"quantity": "4"},
     )
-    
+
     assert response.status_code == 302
 
     # User 1's product through the API.
@@ -174,6 +173,7 @@ def test_user_cannot_delete_another_users_order(client):
 
         assert product_record.quantity == 8
         assert order is not None
+
 
 def test_user_cannot_delete_non_pending_order(client):
     register_and_login(
@@ -245,18 +245,25 @@ def test_admin_can_see_all_users_orders(client):
 
     # Admin logs in and opens the orders page.
     response = client.post(
-    "/login",
-    data={
-        "identifier": "order_admin",
-        "password": "TestPassword123!",
-    },
-    follow_redirects=True,
+        "/login",
+        data={
+            "identifier": "order_admin",
+            "password": "TestPassword123!",
+        },
+        follow_redirects=True,
     )
 
     assert response.status_code == 200
 
     orders_page = client.get("/orders/")
-
     assert orders_page.status_code == 200
-    assert str(order_a_id).encode() in orders_page.data
-    assert str(order_b_id).encode() in orders_page.data
+
+    html = orders_page.get_data(as_text=True)
+
+    # Both staff users' orders appear as table rows.
+    assert f"<td>{order_a_id}</td>" in html
+    assert f"<td>{order_b_id}</td>" in html
+
+    # Admin can see other users' orders but gets no delete controls for them.
+    assert f"/orders/{order_a_id}/delete" not in html
+    assert f"/orders/{order_b_id}/delete" not in html
