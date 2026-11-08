@@ -1,5 +1,6 @@
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+
+from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app import db
@@ -22,7 +23,6 @@ def product_notes(product_id):
     product = db.session.get(Product, product_id)
 
     if product is None:
-        from flask import abort
         abort(404)
 
     if request.method == "POST":
@@ -61,8 +61,20 @@ def product_notes(product_id):
         .all()
     )
 
+    is_product_owner = product.owner_id == current_user.id
+    product_view = {
+        "name": product.name,
+    }
+    
+    if is_product_owner:
+        product_view.update({
+        "sku": product.sku,
+        "quantity": product.quantity,
+    })
+        
     return render_template(
         "stock_notes.html",
-        product=product,
+        product=product_view,
         notes=notes,
-    )
+        is_product_owner=is_product_owner,
+        )
