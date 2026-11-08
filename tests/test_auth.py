@@ -240,3 +240,12 @@ def test_session_cookie_has_security_flags(client):
     assert "HttpOnly" in cookie_header
     assert "SameSite=Lax" in cookie_header
     assert "Secure" not in cookie_header
+
+def test_anonymous_user_cannot_access_admin_users_page(client):
+    response = client.get(
+        "/admin/users",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert "/login" in response.headers["Location"]
