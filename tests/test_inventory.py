@@ -164,6 +164,63 @@ def test_users_cannot_see_each_others_products(client, app):
     assert b"SP-OWNER-001" not in response.data
 
 
+def test_admin_can_see_all_users_products(client, app):
+    # Staff A creates a product.
+    register_and_login(
+        client, "admin_test_staff_a", "staff_a@example.com"
+    )
+
+    client.post("/inventory/new", data={
+        "name": "Staff A Product",
+        "sku": "SP-ADMIN-STAFF-A",
+        "description": "Owned by Staff A",
+        "quantity": "10",
+        "unit_price": "15.00",
+    })
+
+    client.post("/logout")
+
+    # Staff B creates another product.
+    register_and_login(
+        client, "admin_test_staff_b", "staff_b@example.com"
+    )
+
+    client.post("/inventory/new", data={
+        "name": "Staff B Product",
+        "sku": "SP-ADMIN-STAFF-B",
+        "description": "Owned by Staff B",
+        "quantity": "20",
+        "unit_price": "25.00",
+    })
+
+    client.post("/logout")
+
+    # Promote Staff B to admin in the test database.
+    with app.app_context():
+        admin = User.query.filter_by(
+            username="admin_test_staff_b"
+        ).first()
+
+        assert admin is not None
+        admin.role = "admin"
+        db.session.commit()
+
+    # Log in as admin.
+    response = client.post("/login", data={
+        "identifier": "admin_test_staff_b",
+        "password": "TestPassword123!",
+    })
+
+    assert response.status_code == 302
+
+    # Admin should see both users' products.
+    inventory = client.get("/inventory/")
+
+    assert inventory.status_code == 200
+    assert b"Staff A Product" in inventory.data
+    assert b"Staff B Product" in inventory.data
+
+
 def test_inventory_search_finds_matching_product(client):
     register_and_login(
         client, "search_user", "search@example.com"
@@ -564,3 +621,79 @@ def test_products_api_rejects_duplicate_sku(client):
     assert second_response.status_code == 409
     assert second_response.is_json
     assert "error" in second_response.get_json()
+    
+def test_product_owner_can_update_product_through_api(client):
+    register_and_login(
+        client,
+        "api_owner_update",
+        "api_owner_update@example.com",
+    )
+
+    create_response = client.post(
+        "/api/products",
+        json={
+            "name": "Original Keyboard",
+            "sku": "OWNER-UPDATE-001",
+            "description": "Original description",
+            "quantity": 10,
+            "unit_price": "50.00",
+        },
+    )
+
+    assert create_response.status_code == 201
+    product_id = create_response.get_json()["id"]
+
+    update_response = client.patch(
+        f"/api/products/{product_id}",
+        json={
+            "name": "Updated Keyboard",
+            "quantity": 15,
+            "unit_price": "65.00",
+        },
+    )
+
+    assert update_response.status_code == 200
+
+    updated_product = update_response.get_json()
+    assert updated_product["id"] == product_id
+    assert updated_product["name"] == "Updated Keyboard"
+    assert updated_product["quantity"] == 15
+    assert updated_product["unit_price"] == "65.00"
+
+
+def test_product_owner_can_delete_product_through_api(client):
+    register_and_login(
+        client,
+        "api_owner_delete",
+        "api_owner_delete@example.com",
+    )
+
+    create_response = client.post(
+        "/api/products",
+        json={
+            "name": "Temporary Keyboard",
+            "sku": "OWNER-DELETE-001",
+            "description": "Product for deletion test",
+            "quantity": 10,
+            "unit_price": "50.00",
+        },
+    )
+
+    assert create_response.status_code == 201
+    product_id = create_response.get_json()["id"]
+
+    delete_response = client.delete(
+        f"/api/products/{product_id}"
+    )
+
+    assert delete_response.status_code == 200
+    assert delete_response.get_json() == {
+        "message": "Product deleted successfully."
+    }
+
+    get_response = client.get(
+        f"/api/products/{product_id}"
+    )
+
+    assert get_response.status_code == 404
+

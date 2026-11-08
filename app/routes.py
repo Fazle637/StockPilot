@@ -254,10 +254,13 @@ def list_products():
         )
         search = ""
 
-    # Staff members can see only their own products.
-    query = Product.query.filter_by(
-        owner_id=current_user.id,
-    )
+    # Admins see all products; staff see only their own.
+    if current_user.role == "admin":
+        query = Product.query
+    else:
+        query = Product.query.filter_by(
+            owner_id=current_user.id
+        )
 
     if search:
         pattern = f"%{search}%"
