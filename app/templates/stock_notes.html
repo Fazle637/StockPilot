@@ -72,7 +72,12 @@
 
     <h1>Stock Notes</h1>
     <p>Product: <strong>{{ product.name }}</strong></p>
-    <p>SKU: {{ product.sku }} | Current stock: {{ product.quantity }}</p>
+
+    {% if is_product_owner %}
+        <p>SKU: {{ product.sku }} | Current stock: {{ product.quantity }}</p>
+        {% else %}
+        <p>You are viewing shared team notes for this product.</p>
+        {% endif %}
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% for category, message in messages %}
