@@ -10,7 +10,7 @@ The project was developed for the Web Application Programming course at the Roma
 - **Role-based access control:** Admin and staff roles enforced on the server.
 - **Inventory management:** Create, view, edit, delete, and search products.
 - **Product images:** Upload and view validated product images.
-- **Order management:** Create orders, check available stock, and track order status.
+- **Order management:** Create orders, check available stock, and view order status.
 - **Stock notes:** Add notes to products and allow other authorized users to read them.
 - **REST-style JSON API:** Manage products and orders through API endpoints.
 - **Input validation:** Validate submitted data on the server.
@@ -134,6 +134,19 @@ The seed script creates demonstration users, products, orders, order items, and 
 
 **Important:** The seed script uses demonstration credentials. Keep these accounts in local development and change or disable them before any public deployment.
 
+## Seeded test accounts
+
+Created by `python seed.py`. The password for all accounts is `StockPilotDemo2026!`.
+
+| Role | Username | Email |
+|---|---|---|
+| admin | admin1 | admin1@stockpilot.local |
+| admin | admin2 | admin2@stockpilot.local |
+| staff | staff1 | staff1@stockpilot.local |
+| staff | staff2 | staff2@stockpilot.local |
+
+Change or disable these accounts before any public deployment.
+
 ## Run the Application
 
 Start the development server:
@@ -164,6 +177,7 @@ Use the Flask development server for local development only, not public producti
 | New order | `/orders/new` | Create an order |
 | Stock notes | `/inventory/<product_id>/notes` | Read and add product notes |
 | Edit order | `/orders/<order_id>/edit` | Update an owned pending order |
+| User management | `/admin/users` | Admin-only list of users |
 
 ## JSON API Endpoints
 
@@ -204,7 +218,7 @@ The test suite covers:
 - JSON API authentication and request validation
 - Web order editing, deletion, stock restoration, and ownership restrictions
 
-The current test suite contains **52 passing tests**. Run the command above to verify the results after any changes.
+Run the command above to verify the results after any changes.
 
 ## Security Considerations
 
