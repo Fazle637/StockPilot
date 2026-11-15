@@ -7,6 +7,7 @@ from flask import (
     url_for,
     flash,
     session,
+    current_app,
 )
 from flask_login import (
     login_user,
@@ -91,6 +92,15 @@ def login():
         return redirect(url_for("home"))
 
     if request.method == "POST":
+        limiter = current_app.extensions["login_limiter"]
+        client_key = request.remote_addr or "unknown"
+        max_attempts = current_app.config["LOGIN_MAX_ATTEMPTS"]
+        window = current_app.config["LOGIN_WINDOW_SECONDS"]
+
+        if limiter.is_blocked(client_key, max_attempts, window):
+            flash("Too many failed login attempts. Try again later.", "error")
+            return render_template("login.html"), 429
+
         identifier = request.form.get("identifier", "").strip()
         password = request.form.get("password", "")
 
@@ -110,11 +120,13 @@ def login():
             user.password_hash,
             password,
         ):
+            limiter.reset(client_key)
             session.clear()
             session.permanent = True
             login_user(user, remember=False)
             return redirect(url_for("home"))
 
+        limiter.record_failure(client_key, window)
         flash("Invalid username/email or password.", "error")
 
     return render_template("login.html")
