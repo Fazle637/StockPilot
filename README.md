@@ -72,6 +72,20 @@ StockPilot/
 
 SQLite is used for local development, so a separate database server is not required.
 
+## Quick start
+
+Tested on a clean clone with Windows PowerShell and Python 3.13. Run these five lines one after another:
+
+```powershell
+git clone https://github.com/Fazle637/StockPilot.git; cd StockPilot
+py -3.13 -m venv .venv
+.\.venv\Scripts\python -m pip install -r requirements.txt
+.\.venv\Scripts\python -c "import secrets; open('.env','w').write('SECRET_KEY=' + secrets.token_hex(32) + '\n')"
+.\.venv\Scripts\python seed.py; .\.venv\Scripts\python run.py
+```
+
+Then open http://127.0.0.1:5000 and sign in with a seeded account (see Seeded test accounts below). The step-by-step version is in the next section.
+
 ## Installation
 
 ### 1. Clone the repository
