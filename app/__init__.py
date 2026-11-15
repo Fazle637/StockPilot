@@ -95,4 +95,9 @@ def create_app(test_config=None):
     def health():
         return jsonify({"status": "healthy"}), 200
 
+    # Create any missing tables so a fresh clone works without manual setup.
+    # Existing tables and data are left untouched.
+    with app.app_context():
+        db.create_all()
+
     return app
