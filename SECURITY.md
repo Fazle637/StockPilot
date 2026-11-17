@@ -41,7 +41,7 @@ Usernames are visible to other signed-in users as note authors.
 | IDOR on products | Queries filtered by `owner_id` | `app/routes.py`; `app/api_routes.py` | `test_user_cannot_edit_another_users_product`, `test_user_cannot_delete_another_users_product`, `test_api_users_cannot_access_each_others_products` |
 | IDOR on orders | Queries filtered by `created_by_id`; admins may read but not modify | `app/order_routes.py`; `app/api_routes.py` | `test_user_cannot_edit_another_users_order`, `test_user_cannot_delete_another_users_order`, `test_api_user_cannot_read_another_users_order`, `test_api_user_cannot_update_another_users_order`, `test_api_user_cannot_delete_another_users_order` |
 | Private data in shared notes | Non-owners receive only the product name | `app/stock_note_routes.py`: `product_notes` | `test_non_owner_sees_product_name_but_not_sku_or_stock` |
-| Malicious file upload | Pillow content check, JPEG/PNG/WebP only, animated images rejected, random `uuid4` filenames, 5 MB request limit | `app/routes.py`: `save_product_image`; `app/__init__.py`: `MAX_CONTENT_LENGTH` | `test_invalid_image_content_is_rejected`, `test_owner_can_upload_and_view_product_image` |
+| Malicious file upload | Pillow content check, JPEG/PNG/WebP only, animated images rejected, random `uuid4` filenames, 5 MB request limit | `app/routes.py`: `save_product_image`; `app/__init__.py`: `MAX_CONTENT_LENGTH` | `test_invalid_image_content_is_rejected`, `test_owner_can_upload_and_view_product_image`, `tests/test_uploads.py` (12 tests: oversized file, hostile filenames, disguised and malformed files, no leftover files, safe serving headers) |
 | Image access and path traversal | Strict 32-hex filename check, owner-only lookup, fixed content type | `app/routes.py`: `product_image` | `test_user_cannot_view_another_users_product_image` |
 | Invalid or hostile input | Server-side validation of quantity, price, SKU, JSON shape, note length | route handlers in `app/routes.py`, `app/api_routes.py`, `app/stock_note_routes.py` | `test_products_api_rejects_negative_price`, `test_products_api_rejects_missing_fields`, `test_products_api_rejects_non_json_request`, `test_stock_note_over_1000_characters_is_rejected` |
 | Brute-force login | Failed logins are counted per client address; after 5 failures in 5 minutes login returns HTTP 429, even for the correct password; a successful login resets the count | `app/rate_limit.py`: `LoginRateLimiter`; `app/auth.py`: `login`; limits in `app/__init__.py` | `tests/test_rate_limit.py` (3 tests) |
@@ -58,7 +58,6 @@ Usernames are visible to other signed-in users as note authors.
 - No rate limiting on registration, and no limit per account (only per client address).
 - The Content-Security-Policy still allows inline styles (`style-src 'unsafe-inline'`) because one template has a `<style>` block and two use `style=` attributes; scripts are fully locked down.
 - No `Strict-Transport-Security` header: it must be set by the HTTPS proxy or host at deployment.
-- No test for the 5 MB upload limit or hostile upload filenames.
 - No test that password hashes use scrypt, or that startup fails without `SECRET_KEY`.
 - The products API does not give admins read access to all products, unlike the web list.
 
