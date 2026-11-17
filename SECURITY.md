@@ -49,7 +49,7 @@ Usernames are visible to other signed-in users as note authors.
 | Clickjacking, content sniffing, injected scripts | Every response carries `Content-Security-Policy` (scripts only from this server, no inline scripts or eval, no framing, no plugins, forms post only to this server), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` and `Referrer-Policy: same-origin`; the inline delete confirmation was moved to a static script | `app/__init__.py`: `add_security_headers`; `app/static/confirm.js` | `tests/test_security_headers.py`, `tests/test_csp_compat.py` |
 | CSRF | Flask-WTF `CSRFProtect` on every state-changing route, web and JSON API (API writes need the `X-CSRFToken` header) | `app/__init__.py`: `csrf.init_app` | `tests/test_csrf.py` (11 tests) |
 | Stored and reflected XSS | Jinja autoescaping; the `safe` filter and `Markup` are not used | all templates | `test_product_text_is_html_escaped_on_inventory_page`, `test_stock_note_is_html_escaped_for_other_users` |
-| SQL injection | SQLAlchemy ORM only; no raw SQL | `app/routes.py`: `list_products` (search) | see Known gaps |
+| SQL injection | SQLAlchemy ORM with bound parameters and no raw SQL; search text is limited to 100 characters; the owner filter is applied before the search filter | `app/routes.py`: `list_products` | `tests/test_sql_injection.py` (11 tests: classic, UNION, DROP TABLE, wildcard and over-length payloads) |
 | Secrets in the repository | `.env` is not tracked; `.env.example` is shipped; the app refuses to start without `SECRET_KEY` | `app/__init__.py`; `.gitignore` | see Known gaps |
 
 ## 4. Known gaps (being closed)
@@ -58,7 +58,6 @@ Usernames are visible to other signed-in users as note authors.
 - No rate limiting on registration, and no limit per account (only per client address).
 - The Content-Security-Policy still allows inline styles (`style-src 'unsafe-inline'`) because one template has a `<style>` block and two use `style=` attributes; scripts are fully locked down.
 - No `Strict-Transport-Security` header: it must be set by the HTTPS proxy or host at deployment.
-- No test for SQL injection payloads in the search box.
 - No test for the 5 MB upload limit or hostile upload filenames.
 - No test that password hashes use scrypt, or that startup fails without `SECRET_KEY`.
 - The products API does not give admins read access to all products, unlike the web list.
