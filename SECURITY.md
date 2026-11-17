@@ -46,6 +46,7 @@ Usernames are visible to other signed-in users as note authors.
 | Invalid or hostile input | Server-side validation of quantity, price, SKU, JSON shape, note length | route handlers in `app/routes.py`, `app/api_routes.py`, `app/stock_note_routes.py` | `test_products_api_rejects_negative_price`, `test_products_api_rejects_missing_fields`, `test_products_api_rejects_non_json_request`, `test_stock_note_over_1000_characters_is_rejected` |
 | Brute-force login | Failed logins are counted per client address; after 5 failures in 5 minutes login returns HTTP 429, even for the correct password; a successful login resets the count | `app/rate_limit.py`: `LoginRateLimiter`; `app/auth.py`: `login`; limits in `app/__init__.py` | `tests/test_rate_limit.py` (3 tests) |
 | Interactive debugger exposed | Flask debug mode is switched off | `run.py` | `test_run_py_does_not_enable_debug_mode` |
+| Clickjacking, content sniffing, injected scripts | Every response carries `Content-Security-Policy` (scripts only from this server, no inline scripts or eval, no framing, no plugins, forms post only to this server), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` and `Referrer-Policy: same-origin`; the inline delete confirmation was moved to a static script | `app/__init__.py`: `add_security_headers`; `app/static/confirm.js` | `tests/test_security_headers.py`, `tests/test_csp_compat.py` |
 | CSRF | Flask-WTF `CSRFProtect` on every state-changing route, web and JSON API (API writes need the `X-CSRFToken` header) | `app/__init__.py`: `csrf.init_app` | `tests/test_csrf.py` (11 tests) |
 | Stored and reflected XSS | Jinja autoescaping; the `safe` filter and `Markup` are not used | all templates | `test_product_text_is_html_escaped_on_inventory_page`, `test_stock_note_is_html_escaped_for_other_users` |
 | SQL injection | SQLAlchemy ORM only; no raw SQL | `app/routes.py`: `list_products` (search) | see Known gaps |
@@ -55,7 +56,8 @@ Usernames are visible to other signed-in users as note authors.
 
 - Login rate limiting is per client address and kept in memory: counts reset on restart, are not shared between server processes, and behind a reverse proxy the proxy must pass the real client address.
 - No rate limiting on registration, and no limit per account (only per client address).
-- No security headers (CSP, `X-Frame-Options`, `X-Content-Type-Options`).
+- The Content-Security-Policy still allows inline styles (`style-src 'unsafe-inline'`) because one template has a `<style>` block and two use `style=` attributes; scripts are fully locked down.
+- No `Strict-Transport-Security` header: it must be set by the HTTPS proxy or host at deployment.
 - No test for SQL injection payloads in the search box.
 - No test for the 5 MB upload limit or hostile upload filenames.
 - No test that password hashes use scrypt, or that startup fails without `SECRET_KEY`.
