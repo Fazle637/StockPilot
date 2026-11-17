@@ -33,7 +33,7 @@ Usernames are visible to other signed-in users as note authors.
 
 | Threat | Defense | Code | Tests |
 |---|---|---|---|
-| Weak password storage | Werkzeug scrypt hashing | `app/auth.py`: `register`, `login` | `test_user_can_register` |
+| Weak password storage | Werkzeug scrypt hashing | `app/auth.py`: `register`, `login` | `test_user_can_register`, `test_registered_password_is_stored_as_a_scrypt_hash`, `test_same_password_gets_a_different_salted_hash` |
 | Self-assigned role or ownership | Role and owner are never read from request data | `app/auth.py`: `register`; `app/api_routes.py` | `test_registration_cannot_assign_admin_role`, `test_api_create_product_cannot_set_owner_or_role` |
 | Session theft or fixation | 30-minute session, HttpOnly, SameSite=Lax, Secure flag from environment, `session.clear()` at login, logout ends the session | `app/__init__.py` config; `app/auth.py`: `login`, `logout` | `test_session_lifetime_is_30_minutes`, `test_session_cookie_has_security_flags`, `test_session_is_permanent_after_login`, `test_logout_removes_dashboard_access` |
 | Anonymous access | `@login_required` on every page; API gate before every API request | `app/api_routes.py`: `require_api_authentication` | `test_every_non_public_route_rejects_anonymous_users`, `test_products_api_requires_login` |
@@ -50,7 +50,7 @@ Usernames are visible to other signed-in users as note authors.
 | CSRF | Flask-WTF `CSRFProtect` on every state-changing route, web and JSON API (API writes need the `X-CSRFToken` header) | `app/__init__.py`: `csrf.init_app` | `tests/test_csrf.py` (11 tests) |
 | Stored and reflected XSS | Jinja autoescaping; the `safe` filter and `Markup` are not used | all templates | `test_product_text_is_html_escaped_on_inventory_page`, `test_stock_note_is_html_escaped_for_other_users` |
 | SQL injection | SQLAlchemy ORM with bound parameters and no raw SQL; search text is limited to 100 characters; the owner filter is applied before the search filter | `app/routes.py`: `list_products` | `tests/test_sql_injection.py` (11 tests: classic, UNION, DROP TABLE, wildcard and over-length payloads) |
-| Secrets in the repository | `.env` is not tracked; `.env.example` is shipped; the app refuses to start without `SECRET_KEY` | `app/__init__.py`; `.gitignore` | see Known gaps |
+| Secrets in the repository | `.env` is not tracked; `.env.example` is shipped; the app refuses to start without `SECRET_KEY` | `app/__init__.py`; `.gitignore` | `test_app_refuses_to_start_without_a_secret_key` (missing and empty key); `.env` exclusion is enforced by `.gitignore` and checked with `git ls-files` |
 
 ## 4. Known gaps (being closed)
 
@@ -58,7 +58,6 @@ Usernames are visible to other signed-in users as note authors.
 - No rate limiting on registration, and no limit per account (only per client address).
 - The Content-Security-Policy still allows inline styles (`style-src 'unsafe-inline'`) because one template has a `<style>` block and two use `style=` attributes; scripts are fully locked down.
 - No `Strict-Transport-Security` header: it must be set by the HTTPS proxy or host at deployment.
-- No test that password hashes use scrypt, or that startup fails without `SECRET_KEY`.
 - The products API does not give admins read access to all products, unlike the web list.
 
 ## 5. Out of scope and reporting
