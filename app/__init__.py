@@ -100,6 +100,25 @@ def create_app(test_config=None):
     def health():
         return jsonify({"status": "healthy"}), 200
 
+    @app.after_request
+    def add_security_headers(response):
+        headers = response.headers
+        headers.setdefault("X-Content-Type-Options", "nosniff")
+        headers.setdefault("X-Frame-Options", "DENY")
+        headers.setdefault("Referrer-Policy", "same-origin")
+        headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; "
+            "script-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; "
+            "object-src 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'; "
+            "frame-ancestors 'none'",
+        )
+        return response
+
     # Create any missing tables so a fresh clone works without manual setup.
     # Existing tables and data are left untouched.
     with app.app_context():
