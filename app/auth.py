@@ -32,6 +32,17 @@ def register():
         return redirect(url_for("home"))
 
     if request.method == "POST":
+        
+        limiter = current_app.extensions["register_limiter"]
+        client_key = request.remote_addr or "unknown"
+        max_attempts = current_app.config["REGISTER_MAX_ATTEMPTS"]
+        window = current_app.config["REGISTER_WINDOW_SECONDS"]
+
+        if limiter.is_blocked(client_key, max_attempts, window):
+            flash("Too many registration attempts. Try again later.", "error")
+            return render_template("register.html"), 429
+        limiter.record_failure(client_key, window)
+
         username = request.form.get("username", "").strip()
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")

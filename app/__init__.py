@@ -41,6 +41,8 @@ def create_app(test_config=None):
     app.config["SESSION_REFRESH_EACH_REQUEST"] = False
     app.config["LOGIN_MAX_ATTEMPTS"] = 5
     app.config["LOGIN_WINDOW_SECONDS"] = 300
+    app.config["REGISTER_MAX_ATTEMPTS"] = 10
+    app.config["REGISTER_WINDOW_SECONDS"] = 600
     if test_config:
         app.config.update(test_config)
 
@@ -56,6 +58,7 @@ def create_app(test_config=None):
 
     from app.rate_limit import LoginRateLimiter
     app.extensions["login_limiter"] = LoginRateLimiter()
+    app.extensions["register_limiter"] = LoginRateLimiter()
 
     login_manager.login_view = "auth.login"
     login_manager.session_protection = "basic"
